@@ -1,0 +1,10 @@
+;; shadow-cljs configuration
+{:deps {:aliases [:dev :app]}
+ :nrepl {:port 9000}
+ :dev-http {8083 "resources/public"}
+ :builds
+ {:app {:compiler-options {:output-feature-set :es8}
+        :target :browser
+        :modules {:main {:init-fn lhrb.app/init}}
+        :output-dir "resources/public/js"
+        :asset-path "js"}}}

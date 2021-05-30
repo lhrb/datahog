@@ -1,0 +1,38 @@
+{:paths ["src/clj" "resources"]
+ :deps {org.clojure/clojure {:mvn/version "1.10.2"}
+        cheshire/cheshire {:mvn/version "5.10.0"}
+        org.clojure/data.csv {:mvn/version "1.0.0"}
+        org.clojure/core.match {:mvn/version "1.0.0"}
+        nextjournal.clojure-mode/nextjournal.clojure-mode
+        {:git/url "https://github.com/nextjournal/clojure-mode"
+         :sha "d6e08e994c3bc901de9a96a5fdc0b5d38406ebad"}
+        io.pedestal/pedestal.service {:mvn/version "0.5.9"}
+        io.pedestal/pedestal.route   {:mvn/version "0.5.9"}
+        io.pedestal/pedestal.jetty   {:mvn/version "0.5.9"}
+        org.slf4j/slf4j-simple       {:mvn/version "1.7.28"}}
+ :aliases
+ {:run-m {:main-opts ["-m" "lhrb.datahog"]}
+  :run-x {:ns-default lhrb.datahog
+          :exec-fn greet
+          :exec-args {:name "Clojure"}}
+  :test {:extra-paths ["test/clj"]
+         :extra-deps {org.clojure/test.check {:mvn/version "1.1.0"}}}
+  :runner
+  {:extra-deps {com.cognitect/test-runner
+                {:git/url "https://github.com/cognitect-labs/test-runner"
+                 :sha "b6b3193fcc42659d7e46ecd1884a228993441182"}}
+   :main-opts ["-m" "cognitect.test-runner"
+               "-d" "test/clj"]}
+  :uberjar {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.0.193"}}
+            :exec-fn hf.depstar/uberjar
+            :exec-args {:aot true
+                        :jar "datahog.jar"
+                        :main-class "lhrb.datahog"}}
+  :dev {:extra-paths ["test/cljs"]
+        :extra-deps {thheller/shadow-cljs {:mvn/version "2.14.0"}}}
+  :app {:extra-paths ["src/cljs"]
+        :extra-deps {reagent/reagent {:mvn/version "1.0.0"}
+                     re-frame/re-frame {:mvn/version "1.2.0"}
+                     day8.re-frame/http-fx {:mvn/version "0.2.3"}
+                     fipp/fipp {:mvn/version "0.6.23"}
+                     cider/cider-nrepl {:mvn/version "0.26.0"}}}}}
