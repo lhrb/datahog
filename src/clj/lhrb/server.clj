@@ -17,40 +17,6 @@
   (let [db (disk->edn path)]
    `(def ~db-name ~db)))
 
-(defn response [status body & {:as headers}]
-  {:status status :body body :headers headers})
-
-(def ok (partial response 200))
-
-(def echo
-  {:name :echo
-   :enter
-   (fn [context]
-     (let [request (:request context)
-           response (ok request)]
-       (assoc context :response (ok response))))})
-
-(def home
-  {:name :home
-   :enter
-   (fn [context]
-     (let [response (ok (slurp "resources/public/index.html")
-                        "Content-Type" "text/html")]
-       (assoc context :response response)))})
-
-(def repl
-  {:name :repl
-   :enter
-   (fn [context]
-     (let [query (get-in context [:request :edn-params])]
-       (assoc context :response
-              (ok (pr-str (eval query))
-                  ;; TODO use transit instead
-                  "Content-Type" "application/edn"))))})
-
-(defn interceptor [number]
-  {:enter (fn [ctx] (update-in ctx [:request :number] (fnil + 0) number))})
-
 (def routes
   (pedestal/routing-interceptor
     (http/router
