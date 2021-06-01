@@ -1,5 +1,5 @@
 (ns lhrb.server
-  (:require [io.pedestal.http :as http]
+  (:require [io.pedestal.http :as server]
             [io.pedestal.http.route :as route]
             [io.pedestal.test :as test]
             [io.pedestal.http.body-params :as params]
@@ -48,14 +48,14 @@
      ["/repl" :post [(params/body-params) repl] :route-name :repl]}))
 
 (def service-map
-  {::http/routes routes
-   ::http/type   :jetty
-   ::http/port   8890
-   ::http/resource-path "/public"
-   ::http/secure-headers {:content-security-policy-settings {:object-src "none"}}})
+  {::server/routes routes
+   ::server/type   :jetty
+   ::server/port   8890
+   ::server/resource-path "/public"
+   ::server/secure-headers {:content-security-policy-settings {:object-src "none"}}})
 
 (defn start []
-  (http/start (http/create-server service-map)))
+  (server/start (server/create-server service-map)))
 
 (defonce server (atom nil))
 
@@ -64,20 +64,20 @@
           (-> service-map ;; start with production configuration
               (merge {:env :dev
                       ;; do not block thread that starts web server
-                      ::http/join? false
+                      ::server/join? false
                       ;; Routes can be a function that resolve routes,
                       ;;  we can use this to set the routes to be reloadable
-                      ::http/routes #(deref #'routes)
+                      ::server/routes #(deref #'routes)
                       ;; all origins are allowed in dev mode
-                      ::http/allowed-origins {:creds true :allowed-origins (constantly true)}})
+                      ::server/allowed-origins {:creds true :allowed-origins (constantly true)}})
               ;; Wire up interceptor chains
-              http/default-interceptors
-              http/dev-interceptors
-              http/create-server
-              http/start)))
+              server/default-interceptors
+              server/dev-interceptors
+              server/create-server
+              server/start)))
 
 (defn stop-dev []
-  (http/stop @server))
+  (server/stop @server))
 
 (defn restart []
   (stop-dev)
