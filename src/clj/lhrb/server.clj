@@ -55,7 +55,12 @@
   (pedestal/routing-interceptor
     (http/router
      [["/ping" {:get {:handler (fn [req]
-                                 {:status 200 :body "hi"})}}]]
+                                 {:status 200 :body "hi"})}}]
+      ["/repl" {:post
+                {:handler (fn [{:keys [body-params]}]
+                            {:status 200
+                             :headers {"Content-Type" "application/transit+json"}
+                             :body (eval body-params)})}}]]
 
       {:exception pretty/exception
        :data {:muuntaja m/instance
@@ -68,13 +73,6 @@
     (ring/routes
      (ring/create-resource-handler {:path "/"})
      (ring/create-default-handler))))
-
-#_(def routes
-  [["/" {:get {:interceptors [home]}}]
-   ["/repl" {:post {:interceptors [(params/body-params) repl]}}]]
-  #_(route/expand-routes
-   #{["/" :get home :route-name :home]
-     ["/repl" :post [(params/body-params) repl] :route-name :repl]}))
 
 (def service-map
   {::server/routes []
