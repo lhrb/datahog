@@ -18,7 +18,20 @@
 
 (defmacro load-db [db-name path]
   (let [db (disk->edn path)]
-   `(def ~db-name ~db)))
+    `(def ~db-name ~db)))
+
+(defn to-transit [form]
+    (->> form
+         (m/encode "application/transit+json")
+         (slurp)))
+
+(def dbg-interceptor
+  "pprint request context"
+  {:name :dbg-interceptor
+   :enter (fn [ctx]
+            (do
+              (clojure.pprint/pprint ctx)
+              ctx))})
 
 (def router
   (pedestal/routing-interceptor
@@ -26,11 +39,15 @@
      [["/ping" {:get {:handler (fn [req]
                                  {:status 200 :body "hallo"})}}]
       ["/repl" {:post
-                {:handler (fn [req]
+                {;:interceptors [dbg-interceptor]
+                 :handler (fn [req]
                             (let [res (eval (:body-params req))]
-                             {:status 200
-                              :headers {"Content-Type" "application/transit+json"}
-                              :body {:result res}}))}}]]
+                              {:status 200
+                               :headers {"Content-Type" "application/transit+json"}
+                               ;; I thought muuntaja would convert to transit for me but this
+                               ;; does not seem to be true?
+                               ;; TODO handle conversion with an interceptor
+                               :body    (to-transit {:result res})}))}}]]
      {:exception pretty/exception
        :data {:muuntaja m/instance
               :interceptors [(parameters/parameters-interceptor)
@@ -49,6 +66,7 @@
    ::server/port   8890
    ::server/secure-headers {:content-security-policy-settings
                             {:object-src "'none'"}
+                            ;; TODO find out how this actually works
                             #_{:default-src "'self'"
                              :style-src "'self' 'unsafe-inline'"
                              :script-src "'self' 'unsafe-inline' 'data'"
@@ -83,7 +101,7 @@
   (start-dev)
   (restart)
 
-  (defn to-transit [form]
+  (defmacro to-transit-m [form]
     (->> form
          (m/encode "application/transit+json")
          (slurp)))
@@ -91,7 +109,8 @@
   (test/response-for
    (:io.pedestal.http/service-fn @server)
    :post "/repl"
-   :headers {"Content-Type" "application/transit+json"}
+   :headers {"Content-Type" "application/transit+json"
+             "accept" "application/transit+json"}
    :body (to-transit '(+ 1 1)))
 
   (def db (disk->edn "resources/got-db.edn"))
@@ -106,7 +125,7 @@
    (:io.pedestal.http/service-fn @lhrb.server/server)
    :post "/repl"
    :headers {"Content-Type" "application/transit+json"}
-   :body (to-transit
+   :body (to-transit-m
           (q {:find [?name ?noble]
               :where [[?b :battle/location "Storm's End"]
                       [?b :battle/defender_commander ?name]
