@@ -26,7 +26,8 @@
             [re-frame.core :as rf]
             [ajax.core :as ajax]
             ;; cause :http-xhrio effect handler to register with re-frame
-            [day8.re-frame.http-fx]))
+            [day8.re-frame.http-fx]
+            [cognitect.transit :as t]))
 
 (rf/reg-event-db
  :initialize
@@ -38,15 +39,29 @@
     :results {:code ";; => eval output gets displayed here"}
     :last []}))
 
+(rf/reg-fx
+ :println
+ (fn [d]
+   (def daa d)
+   (js/console.log d)
+   (println d)))
+
+(rf/reg-event-fx
+ :success
+ (fn [_ [_ data]]
+   {:println {:data data}}))
+
 (rf/reg-event-fx
  :eval
- (fn [cofx [_ _]]
+ (fn [_ [_ data]]
+   (println data)
    {:http-xhrio {:method            :post
                  :uri               "http://localhost:8890/repl"
-                 :body              '(+ 1 1)
-                 :format            "application/edn"
-                 :response-format   "application/edn"
-                 :on-success        #(println %)}}))
+                 :params            data
+                 :format            (ajax/transit-request-format {:type :json})
+                 :response-format   (ajax/transit-response-format {:type :json})
+                 :on-success        [:success]
+                 :on-failure        [:success]}}))
 
 (rf/reg-event-db
  :new-result
@@ -58,9 +73,18 @@
  (fn [db _]
    (get-in db [:results :code] '(nothing to see yet))))
 
+
 (comment
   (rf/dispatch [:new-result '(+ 1 1)])
   (rf/dispatch [:eval "hallo"])
+
+  (rf/dispatch [:eval '(+ 1 1 1)])
+  (def data '(+ 1 1 1))
+
+  (ajax/POST "http://localhost:8890/repl"
+             {:params           {:a "b"}
+              :format           (ajax/transit-request-format {:type :json})
+              :response-format  (ajax/transit-response-format {:type :json})})
 
   @rdb/app-db
   ,)
