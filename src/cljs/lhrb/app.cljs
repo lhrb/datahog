@@ -78,7 +78,7 @@
   (rf/dispatch [:new-result '(+ 1 1)])
   (rf/dispatch [:eval "hallo"])
 
-  (rf/dispatch [:eval '(+ 1 1 1)])
+  (rf/dispatch [:eval '(+ 1 1 1 1)])
   (def data '(+ 1 1 1))
 
   (ajax/POST "http://localhost:8890/repl"
@@ -197,14 +197,14 @@
 (defn result-box []
   (let [source (rf/subscribe [:results])]
     (fn []
-      [:div {:class "code-box"}
+      [:div {:class "result-box"}
        [result-view @source]])))
 
 (defn page []
   [:div
-   [:section {:class "header"}
-    [:h2 {:class "title"} "Datahog"]]
-   [:div {:class "row bg-grey"}
+   [:nav {:class "nav"}
+    [:p {:class "nav-title"} "Datahog"]]
+   [:div {:class "content row bg-grey"}
     [:div {:class "six columns padding-10"}
      [:div {:class "code-wrapper"}
       [:div {:class "code-box"}
@@ -212,7 +212,7 @@
       [:div {:class "code-wrapper"}
       [:div {:class "code-box"}
        [editor]]]]
-    [:div {:class "six columns padding-10"}
+    [:div {:class "six columns v-padding-10"}
      [result-box]
      ]]])
 

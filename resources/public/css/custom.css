@@ -31,6 +31,43 @@
     padding: 0px 10px 0px 10px;
 }
 
+.v-padding-10 {
+    padding: 10px 0px 10px 0px;
+}
+
 .padding-10 {
     padding: 10px 10px 10px 10px;
+}
+
+.nav {
+    background: rgb(244, 245, 246) none repeat scroll 0% 0%;
+    border-bottom: 0.1rem solid rgb(209, 209, 209);
+    display: block;
+    height: 50px;
+    left: 0px;
+    max-width: 100%;
+    position: fixed;
+    right: 0px;
+    top: 0px;
+    width: 100%;
+    z-index: 2;
+}
+
+.nav-title {
+    line-height: 50px;
+    padding-left: 10px;
+}
+
+.content {
+    margin-top: 50px;
+}
+
+.result-box {
+    border-left: 1px solid #ccc;
+    border-top: 1px solid #ccc;
+    border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    position: absolute;
+    height: 100%;
+    background-color: #ffffff;
 }
