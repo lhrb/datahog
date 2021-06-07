@@ -12,7 +12,6 @@
             ; [reitit.http.interceptors.dev :as dev]
             [reitit.pedestal :as pedestal]
             [muuntaja.core :as m]
-
             [lhrb.io :refer [disk->edn]]
             [lhrb.engine :refer [q]]))
 
@@ -24,6 +23,14 @@
     (->> form
          (m/encode "application/transit+json")
          (slurp)))
+
+(defn get-response
+  [req-body-params]
+  ;; TODO add error handling
+  (let [res (eval req-body-params)]
+    (if (var? res)
+      (:name (meta res))
+      res)))
 
 (def dbg-interceptor
   "pprint request context"
@@ -41,7 +48,7 @@
       ["/repl" {:post
                 {;:interceptors [dbg-interceptor]
                  :handler (fn [req]
-                            (let [res (eval (:body-params req))]
+                            (let [res (get-response (:body-params req))]
                               {:status 200
                                :headers {"Content-Type" "application/transit+json"}
                                ;; I thought muuntaja would convert to transit for me but this
