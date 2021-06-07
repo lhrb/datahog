@@ -27,7 +27,7 @@
             [ajax.core :as ajax]
             ;; cause :http-xhrio effect handler to register with re-frame
             [day8.re-frame.http-fx]
-            [cognitect.transit :as t]))
+            [cljs.tools.reader :as edn]))
 
 (rf/reg-event-db
  :initialize
@@ -51,22 +51,21 @@
  (fn [_ [_ data]]
    {:println {:data data}}))
 
+(rf/reg-event-db
+ :new-result
+ (fn [db [_ res]]
+   (assoc-in db [:results :code] (:result res))))
+
 (rf/reg-event-fx
  :eval
  (fn [_ [_ data]]
-   (println data)
    {:http-xhrio {:method            :post
                  :uri               "http://localhost:8890/repl"
                  :params            data
                  :format            (ajax/transit-request-format {:type :json})
                  :response-format   (ajax/transit-response-format {:type :json})
-                 :on-success        [:success]
+                 :on-success        [:new-result]
                  :on-failure        [:success]}}))
-
-(rf/reg-event-db
- :new-result
- (fn [db [_ res]]
-   (assoc-in db [:results :code] res)))
 
 (rf/reg-sub
  :results
@@ -78,7 +77,18 @@
   (rf/dispatch [:new-result '(+ 1 1)])
   (rf/dispatch [:eval "hallo"])
 
-  (rf/dispatch [:eval '(+ 1 1 1 1)])
+  (rf/dispatch [:eval '(addtwo 2)])
+
+  (rf/dispatch [:eval '(load-db db "resources/got-db.edn")])
+  (rf/dispatch [:eval '(q {:find [?name ?noble]
+              :where [[?b :battle/location "Storm's End"]
+                      [?b :battle/defender_commander ?name]
+                      [?p :char/Name ?name]
+                      [?p :char/Nobility ?noble]]}
+                          db)])
+
+
+  (rf/dispatch [:eval '(+ 2 2 2)])
   (def data '(+ 1 1 1))
 
   (ajax/POST "http://localhost:8890/repl"
@@ -87,10 +97,15 @@
               :response-format  (ajax/transit-response-format {:type :json})})
 
   @rdb/app-db
+
+  (edn/read-string "(+ 1 1)")
   ,)
 
+
+
 (j/defn eval-cell [^:js {:keys [state]}]
-  (-> (str "(do " (.-doc state) " )"))
+  (rf/dispatch [:eval (edn/read-string
+                       (-> (str "(do " (.-doc state) " )")))])
   true)
 
 (defn keymap* [modifier]
@@ -105,10 +120,7 @@
      :doc "Evaluates top-level form at cursor"}]})
 
 (defn extension [{:keys [modifier]}]
-  (.of view/keymap
-       (j/lit
-        [{:key "Mod-Enter"
-          :run (partial eval-cell)}])))
+  )
 
 (def theme
   (.theme EditorView
@@ -128,16 +140,20 @@
                   ".cm-cursor" {:visibility "hidden"}
                   "&.cm-focused .cm-cursor" {:visibility "visible"}})))
 
-(defonce ^:private extensions #js[theme
-                        (history)
-                        highlight/defaultHighlightStyle
-                        (view/drawSelection)
-                        ;(lineNumbers)
-                        (fold/foldGutter)
-                        (.. EditorState -allowMultipleSelections (of true))
-                        cm-clj/default-extensions
-                        (.of view/keymap cm-clj/complete-keymap)
-                        (.of view/keymap historyKeymap)])
+(def ^:private extensions #js[theme
+                                  (history)
+                                  highlight/defaultHighlightStyle
+                                  (view/drawSelection)
+                                        ;(lineNumbers)
+                                  (fold/foldGutter)
+                                  (.. EditorState -allowMultipleSelections (of true))
+                                  cm-clj/default-extensions
+                                  (.of view/keymap cm-clj/complete-keymap)
+                                  (.of view/keymap historyKeymap)
+                                  (.of view/keymap
+                                       (j/lit
+                                         [{:key "Alt-Enter"
+                                           :run (fn [x] (eval-cell x))}]))])
 
 (def extensions-read-only
   #js[theme
@@ -199,8 +215,6 @@
     (fn []
       [result-view @source])))
 
-(def longtxt "Lorem ipsum dolor sit amet, consectetur adipisicing elit. Excepturi ipsa vero, nesciunt sunt dolorum distinctio corporis quis totam, dicta, rem maiores possimus impedit deleniti odio a. Quidem similique temporibus, odit vero illo cupiditate excepturi earum tenetur porro ea. Enim ea pariatur animi eius quo earum corporis adipisci, nesciunt at eum neque alias quibusdam dolor vel expedita. Expedita dolorem cumque minima, quas, maiores officiis beatae pariatur quis suscipit! Consequatur iusto porro odio laborum minima, reiciendis quam quos dolores ipsam dignissimos laboriosam ex quasi possimus impedit provident eveniet cumque blanditiis doloremque a voluptatum assumenda optio! Dolorem, quas consectetur quidem! Itaque magni officia magnam impedit qui nam unde sint veniam, quis animi earum officiis perferendis repellendus porro reiciendis quaerat cumque numquam tempora corporis rerum tenetur autem necessitatibus ab minus consectetur. Magni eligendi ducimus, porro cumque a odit omnis neque rerum unde. Dolores sequi aliquid voluptatibus odit odio facilis quis et temporibus nobis ipsa sit laudantium libero, corporis consequatur. Nisi saepe provident id veniam tempore aliquam libero hic error sint, tenetur alias earum, quam est nobis eaque, eius odio eum. Nam dolor deleniti eos tempore sunt sapiente accusantium non hic, quod eligendi sequi dolore quos molestiae voluptas labore eius temporibus enim similique odio, quis quisquam! Impedit, iure aspernatur id praesentium minima, culpa alias veniam. Sapiente maiores architecto placeat, et harum eligendi doloribus vel reiciendis eveniet est beatae sit necessitatibus hic eius, corporis deleniti praesentium velit similique, quaerat unde odit. Repellat magni, nihil, quibusdam doloremque maiores tenetur obcaecati tempora, veniam officia, doloribus ratione reprehenderit. Porro eum iste minima corrupti fuga expedita quo dolore explicabo ea eius vero, magnam illum dolorem ullam hic enim sapiente, odio eaque! Similique tempore laboriosam explicabo fuga eum ipsum, doloribus animi, repudiandae laudantium. Dignissimos, accusamus quasi sit atque nam quidem autem at maxime, soluta, eveniet excepturi quisquam ratione perspiciatis ipsum consectetur facilis odio ad possimus officiis odit molestiae. Exercitationem facere magnam mollitia assumenda odio est doloribus accusamus animi dignissimos veritatis ut excepturi, quia maiores, ipsum sint ex sed a minus quidem temporibus. Ipsum, quod quidem nam quisquam, quaerat accusantium in iusto inventore, fugiat sint mollitia magnam totam distinctio, vel deleniti sit voluptas quibusdam sequi! Officiis quo, facere atque similique a blanditiis, nostrum recusandae aut. Nemo voluptas, nesciunt totam fugit omnis. Laborum qui laudantium quos, inventore minima ipsum ut velit quam nobis eligendi, expedita quo necessitatibus, ea nemo odit sapiente commodi atque! Expedita facere quae modi iste sed, placeat sint eligendi, sapiente. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Excepturi ipsa vero, nesciunt sunt dolorum distinctio corporis quis totam, dicta, rem maiores possimus impedit deleniti odio a. Quidem similique temporibus, odit vero illo cupiditate excepturi earum tenetur porro ea. Enim ea pariatur animi eius quo earum corporis adipisci, nesciunt at eum neque alias quibusdam dolor vel expedita. Expedita dolorem cumque minima, quas, maiores officiis beatae pariatur quis suscipit! Consequatur iusto porro odio laborum minima, reiciendis quam quos dolores ipsam dignissimos laboriosam ex quasi possimus impedit provident eveniet cumque blanditiis doloremque a voluptatum assumenda optio! Dolorem, quas consectetur quidem! Itaque magni officia magnam impedit qui nam unde sint veniam, quis animi earum officiis perferendis repellendus porro reiciendis quaerat cumque numquam tempora corporis rerum tenetur autem necessitatibus ab minus consectetur. Magni eligendi ducimus, porro cumque a odit omnis neque rerum unde. Dolores sequi aliquid voluptatibus odit odio facilis quis et temporibus nobis ipsa sit laudantium libero, corporis consequatur. Nisi saepe provident id veniam tempore aliquam libero hic error sint, tenetur alias earum, quam est nobis eaque, eius odio eum. Nam dolor deleniti eos tempore sunt sapiente accusantium non hic, quod eligendi sequi dolore quos molestiae voluptas labore eius temporibus enim similique odio, quis quisquam! Impedit, iure aspernatur id praesentium minima, culpa alias veniam. Sapiente maiores architecto placeat, et harum eligendi doloribus vel reiciendis eveniet est beatae sit necessitatibus hic eius, corporis deleniti praesentium velit similique, quaerat unde odit. Repellat magni, nihil, quibusdam doloremque maiores tenetur obcaecati tempora, veniam officia, doloribus ratione reprehenderit. Porro eum iste minima corrupti fuga expedita quo dolore explicabo ea eius vero, magnam illum dolorem ullam hic enim sapiente, odio eaque! Similique tempore laboriosam explicabo fuga eum ipsum, doloribus animi, repudiandae laudantium. Dignissimos, accusamus quasi sit atque nam quidem autem at maxime, soluta, eveniet excepturi quisquam ratione perspiciatis ipsum consectetur facilis odio ad possimus officiis odit molestiae. Exercitationem facere magnam mollitia assumenda odio est doloribus accusamus animi dignissimos veritatis ut excepturi, quia maiores, ipsum sint ex sed a minus quidem temporibus. Ipsum, quod quidem nam quisquam, quaerat accusantium in iusto inventore, fugiat sint mollitia magnam totam distinctio, vel deleniti sit voluptas quibusdam sequi! Officiis quo, facere atque similique a blanditiis, nostrum recusandae aut. Nemo voluptas, nesciunt totam fugit omnis. Laborum qui laudantium quos, inventore minima ipsum ut velit quam nobis eligendi, expedita quo necessitatibus, ea nemo odit sapiente commodi atque! Expedita facere quae modi iste sed, placeat sint eligendi, sapiente. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Excepturi ipsa vero, nesciunt sunt dolorum distinctio corporis quis totam, dicta, rem maiores possimus impedit deleniti odio a. Quidem similique temporibus, odit vero illo cupiditate excepturi earum tenetur porro ea. Enim ea pariatur animi eius quo earum corporis adipisci, nesciunt at eum neque alias quibusdam dolor vel expedita. Expedita dolorem cumque minima, quas, maiores officiis beatae pariatur quis suscipit! Consequatur iusto porro odio laborum minima, reiciendis quam quos dolores ipsam dignissimos laboriosam ex quasi possimus impedit provident eveniet cumque blanditiis doloremque a voluptatum assumenda optio! Dolorem, quas consectetur quidem! Itaque magni officia magnam impedit qui nam unde sint veniam, quis animi earum officiis perferendis repellendus porro reiciendis quaerat cumque numquam tempora corporis rerum tenetur autem necessitatibus ab minus consectetur. Magni eligendi ducimus, porro cumque a odit omnis neque rerum unde. Dolores sequi aliquid voluptatibus odit odio facilis quis et temporibus nobis ipsa sit laudantium libero, corporis consequatur. Nisi saepe provident id veniam tempore aliquam libero hic error sint, tenetur alias earum, quam est nobis eaque, eius odio eum. Nam dolor deleniti eos tempore sunt sapiente accusantium non hic, quod eligendi sequi dolore quos molestiae voluptas labore eius temporibus enim similique odio, quis quisquam! Impedit, iure aspernatur id praesentium minima, culpa alias veniam. Sapiente maiores architecto placeat, et harum eligendi doloribus vel reiciendis eveniet est beatae sit necessitatibus hic eius, corporis deleniti praesentium velit similique, quaerat unde odit. Repellat magni, nihil, quibusdam doloremque maiores tenetur obcaecati tempora, veniam officia, doloribus ratione reprehenderit. Porro eum iste minima corrupti fuga expedita quo dolore explicabo ea eius vero, magnam illum dolorem ullam hic enim sapiente, odio eaque! Similique tempore laboriosam explicabo fuga eum ipsum, doloribus animi, repudiandae laudantium. Dignissimos, accusamus quasi sit atque nam quidem autem at maxime, soluta, eveniet excepturi quisquam ratione perspiciatis ipsum consectetur facilis odio ad possimus officiis odit molestiae. Exercitationem facere magnam mollitia assumenda odio est doloribus accusamus animi dignissimos veritatis ut excepturi, quia maiores, ipsum sint ex sed a minus quidem temporibus. Ipsum, quod quidem nam quisquam, quaerat accusantium in iusto inventore, fugiat sint mollitia magnam totam distinctio, vel deleniti sit voluptas quibusdam sequi! Officiis quo, facere atque similique a blanditiis, nostrum recusandae aut. Nemo voluptas, nesciunt totam fugit omnis. Laborum qui laudantium quos, inventore minima ipsum ut velit quam nobis eligendi, expedita quo necessitatibus, ea nemo odit sapiente commodi atque! Expedita facere quae modi iste sed, placeat sint eligendi, sapiente. ")
-
 (defn page []
   [:div {:class "wrap"}
    [:nav
@@ -216,19 +230,7 @@
        [editor]]]]
     [:result-view
      [:h1 "Result"]
-     [result-box]]]
-
-   #_[:div {:class "content row bg-grey"}
-    [:div {:class "six columns padding-10"}
-     [:div {:class "code-wrapper"}
-      [:div {:class "code-box"}
-       [editor]]]
-      [:div {:class "code-wrapper"}
-      [:div {:class "code-box"}
-       [editor]]]]
-    [:div {:class "six columns v-padding-10"}
-     [result-box]
-     ]]])
+     [result-box]]]])
 
 ;; nextjournal/clojure-mode/demo
 (defn linux? []
