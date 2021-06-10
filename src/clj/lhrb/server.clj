@@ -15,9 +15,28 @@
             [lhrb.io :refer [disk->edn]]
             [lhrb.engine :refer [q]]))
 
+(defn load-db2 [db db-name path]
+  (swap! db (fn [a] (assoc a db-name (disk->edn path)))))
+
+(def sym-table (atom {'q #'lhrb.engine/q
+                      'load-db2 #'lhrb.server/load-db2}))
+
 (defmacro load-db [db-name path]
   (let [db (disk->edn path)]
     `(def ~db-name ~db)))
+
+(comment
+  (def sym-table nil)
+  (load-db2 sym-table 'test-db "resources/got-db.edn")
+  (let [m {'+ "hallo"
+           'a "a"
+           'b "b"}]
+    (clojure.walk/postwalk
+     (fn [x]
+       (if-let [sub (get m x)]
+         sub
+         x))
+     '({+ [[a b] [1 2] [a 3]]}))))
 
 (defn to-transit [form]
     (->> form
@@ -38,7 +57,28 @@
    :enter (fn [ctx]
             (do
               (clojure.pprint/pprint ctx)
-              ctx))})
+              ctx))
+   :leave (fn [ctx]
+            (do (println "hallo ich war hier")
+                ctx))})
+
+(def sym-table-interceptor
+  {:name :sym-table-interceptor
+   :enter (fn [ctx]
+            (assoc ctx :sym-table @lhrb.server/sym-table))})
+
+(def symbol-injector
+  {:name :symbol-injector
+   :enter (fn [ctx]
+            (let [syms (:symbol-table ctx)]
+              (update ctx :body-params
+                      (fn [params]
+                        (clojure.walk/postwalk
+                         (fn [x]
+                           (if-let [sub (get syms x)]
+                             sub
+                             x))
+                         params)))))})
 
 (def router
   (pedestal/routing-interceptor
@@ -54,7 +94,14 @@
                                ;; I thought muuntaja would convert to transit for me but this
                                ;; does not seem to be true?
                                ;; TODO handle conversion with an interceptor
-                               :body    (to-transit {:result res})}))}}]]
+                               :body    (to-transit {:result res})}))}}]
+      ["/dbg" {:post
+               {:interceptors [sym-table-interceptor
+                               symbol-injector
+                               dbg-interceptor]
+                :handler (fn [req]
+                           {:status 200
+                            :body "hallo"})}}]]
      {:exception pretty/exception
        :data {:muuntaja m/instance
               :interceptors [(parameters/parameters-interceptor)
@@ -144,4 +191,12 @@
        (m/encode "application/transit+json")
        (m/decode "application/transit+json"))
 
+  (test/response-for
+   (:io.pedestal.http/service-fn @lhrb.server/server)
+   :post "/dbg"
+   :headers {"Content-Type" "application/edn"}
+   :body "(load-db2 q)")
+
+
+  (:sym-table r)
     *e)
