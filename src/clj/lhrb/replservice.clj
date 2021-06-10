@@ -56,11 +56,10 @@
    :headers {"Content-Type" "application/transit+json"}
    :body {:result (eval (:body-params ctx))}})
 
-(defn repl []
-  ["/repl"
-   {:post
-    {:interceptors
-     [#'resp->transit
-      (sym-table-interceptor #'sym-table)
-      #'symbol-injector]}
-    :handler eval-body}])
+(def repl-route
+  {:post
+   {:interceptors
+    [resp->transit
+     (sym-table-interceptor #'sym-table)
+     symbol-injector]}
+   :handler eval-body})
