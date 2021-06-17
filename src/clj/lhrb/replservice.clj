@@ -99,33 +99,22 @@
   (def path "resources/got-db.edn")
   (def db-name 'test-db)
 
-  ;; pretty messy I should checkout zippers ...
-  (defn remove-forms [pred ast]
-    (let [rmv-from-ast
-          (fn rmv-from-ast
-            [pred ast]
-            (loop [result '()
-                   [head & rst] ast]
-              (let [result' (if (pred head)
-                        result
-                        (conj result
-                              (if (list? head)
-                                (rmv-from-ast pred head)
-                                head)))]
-                (if rst
-                  (recur result' rst)
-                  result'))))]
-      (w/postwalk
-       #(if (seq? %) (reverse %) %)
-       (rmv-from-ast pred ast))))
+  (defn rmv-from-ast [pred ast]
+    (w/prewalk
+     (fn [node]
+       (if (list? node)
+         (remove pred node)
+         node))
+     ast))
 
 
-  (remove-forms
+  (rmv-from-ast
       (fn [x]  (and (list? x) (= '+ (first x))))
       '(-
         (- 1 1 (+ 1 1))
         3
         (+ 1 2)
         (- 2 3 (- 1 1))))
+
 
   ,)
