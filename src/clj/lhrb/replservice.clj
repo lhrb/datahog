@@ -31,6 +31,7 @@
    :enter (fn [ctx]
             (assoc ctx :sym-table @sym-table))
    :leave (fn [ctx]
+            ;; TODO :tx-data should be a list
             (if-let [[sym ref] (:tx-data ctx)]
               (do
                 (swap! sym-table (fn [x] (assoc x sym ref)))
@@ -60,6 +61,14 @@
    (list? form)
    (= 'load-db (first form))))
 
+(defn rmv-from-ast [pred ast]
+    (w/prewalk
+     (fn [node]
+       (if (list? node)
+         (remove pred node)
+         node))
+     ast))
+
 (def load-db-instructions
   "* extract (load-db ..) forms from :body-params
    * create-dbs
@@ -70,13 +79,30 @@
    (fn [ctx]
      (let [load-forms (->> (:body-params ctx)
                            (tree-seq list? identity)
-                           (filter match-load-db-form))]))})
+                           (filter match-load-db-form)
+                           (map
+                            (fn [[_ name db]]
+                              [name (disk->edn db)])))
+           body-params (->> (:body-params ctx)
+                            (rmv-from-ast match-load-db-form))]
+       (-> ctx
+           (update-in [:sym-table]
+            (fn [item]
+              (->> load-forms
+                   (reduce
+                    (fn [m [k v]]
+                      (assoc m k v))
+                    item))))
+           (update-in [:tx-data]
+            (fnil into []) load-forms)
+           (assoc-in [:body-params]
+            body-params))))})
 
 (comment
   (def ctx {:body-params
             '(do
-               (load-db db0 "resources/got-db.edn")
-               (load-db db1 "resources/got-db.edn"))})
+               (load-db db0 "resources/test-db.edn")
+               (load-db db1 "resources/test-db.edn"))})
   ,)
 
 
@@ -99,15 +125,6 @@
   (def path "resources/got-db.edn")
   (def db-name 'test-db)
 
-  (defn rmv-from-ast [pred ast]
-    (w/prewalk
-     (fn [node]
-       (if (list? node)
-         (remove pred node)
-         node))
-     ast))
-
-
   (rmv-from-ast
       (fn [x]  (and (list? x) (= '+ (first x))))
       '(-
@@ -115,6 +132,17 @@
         3
         (+ 1 2)
         (- 2 3 (- 1 1))))
+
+  (update-in {:sym {:c 4}} [:sym]
+             (fn [item]
+              (->> [[:a 1] [:b 2]]
+                   (reduce
+                    (fn [m [k v]]
+                      (assoc m k v))
+                    item))))
+
+  (update-in {:tx-data [[:a 2]]} [:tx-data]
+             (fnil into []) [[:b 2]])
 
 
   ,)
