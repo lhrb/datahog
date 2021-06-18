@@ -13,16 +13,16 @@
    :leave
    (fn [ctx]
      (update-in ctx [:response :body]
-                (fn [form]
-                  (->> form
-                       (w/postwalk
-                        (fn [x]
-                          ;; transit cannot encode var-refs
-                          (if (var? x)
-                            (:name (meta x))
-                            x)))
-                       (m/encode "application/transit+json")
-                       (slurp)))))})
+      (fn [form]
+        (->> form
+             (w/postwalk
+              (fn [x]
+                ;; transit cannot encode var-refs
+                (if (var? x)
+                  (:name (meta x))
+                  x)))
+             (m/encode "application/transit+json")
+             (slurp)))))})
 
 (defn sym-table-interceptor
   "enter: add the sym-table to the request
@@ -51,13 +51,13 @@
    (fn [ctx]
      (let [syms (:sym-table ctx)]
        (update ctx :body-params
-               (fn [params]
-                 (w/postwalk
-                  (fn [x]
-                    (if-let [sub (get syms x)]
-                      sub
-                      x))
-                  params)))))})
+        (fn [params]
+          (w/postwalk
+           (fn [x]
+             (if-let [sub (get syms x)]
+               sub
+               x))
+           params)))))})
 
 
 (defn match-load-db-form
@@ -143,15 +143,15 @@
         (- 2 3 (- 1 1))))
 
   (update-in {:sym {:c 4}} [:sym]
-             (fn [item]
-              (->> [[:a 1] [:b 2]]
-                   (reduce
-                    (fn [m [k v]]
-                      (assoc m k v))
-                    item))))
+   (fn [item]
+     (->> [[:a 1] [:b 2]]
+          (reduce
+           (fn [m [k v]]
+             (assoc m k v))
+           item))))
 
   (update-in {:tx-data [[:a 2]]} [:tx-data]
-             (fnil into []) [[:b 2]])
+   (fnil into []) [[:b 2]])
 
 
   ,)
