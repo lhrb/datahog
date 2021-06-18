@@ -32,10 +32,14 @@
    :enter (fn [ctx]
             (assoc ctx :sym-table @sym-table))
    :leave (fn [ctx]
-            ;; TODO :tx-data should be a list
-            (if-let [[sym ref] (:tx-data ctx)]
+            (if-let [tx-data (:tx-data ctx)]
               (do
-                (swap! sym-table (fn [x] (assoc x sym ref)))
+                (swap! sym-table
+                 (fn [sym]
+                   (reduce
+                    (fn [m [k v]]
+                      (assoc m k v))
+                    sym tx-data)))
                 (assoc ctx :sym-table @sym-table))
               ctx))})
 

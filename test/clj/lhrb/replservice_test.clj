@@ -15,9 +15,9 @@
    (=
     ((:leave
       (t/sym-table-interceptor (atom {:a 1})))
-     {:tx-data [:b 2]})
+     {:tx-data [[:b 2] [:c 3]]})
 
-    {:tx-data [:b 2], :sym-table {:a 1, :b 2}})))
+    {:tx-data [[:b 2] [:c 3]], :sym-table {:a 1, :b 2, :c 3}})))
 
 (deftest test-replace-symbols
   (is
