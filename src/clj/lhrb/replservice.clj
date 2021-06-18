@@ -116,6 +116,7 @@
    {:interceptors
     [resp->transit
      (sym-table-interceptor #'sym-table)
+     load-db-instructions
      replace-symbols]}
    :handler eval-body})
 
