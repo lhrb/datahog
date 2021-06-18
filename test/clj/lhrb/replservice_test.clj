@@ -1,5 +1,5 @@
 (ns lhrb.replservice-test
-  (:require  [clojure.test :refer [deftest is]]
+  (:require  [clojure.test :refer [deftest is testing]]
              [lhrb.replservice :as t]))
 
 (deftest test-sym-table-interceptor
@@ -46,12 +46,13 @@
 
     {:response {:body "[\"~#list\",[1,2,3]]"}}))
 
-  (is "can we handle nil?"
-   (=
-    ((:leave t/resp->transit)
-     {:response {:body nil}})
+  (testing "can we handle nil?"
+    (is
+     (=
+      ((:leave t/resp->transit)
+       {:response {:body nil}})
 
-    {:response {:body "[\"~#'\",null]"}}))
+      {:response {:body "[\"~#'\",null]"}})))
 
   (is
    (=
@@ -118,42 +119,32 @@
         [1 :battle/summer false]]]]})))
 
 (deftest round-trip
-  (is
-   (=
-    (-> {:body-params '(do
-                         (load-db db0 "resources/test-db.edn")
-                         (:a db0))}
-        ((:enter (t/sym-table-interceptor (atom {:a 'first}))))
-        ((:enter t/load-db-instructions))
-        ((:enter t/replace-symbols)))
-    '{:body-params
-      (do
-        (first
-         [[1 :battle/attacker_commander "Stannis Baratheon"]
-          [1 :battle/defender_1 "Bolton"]
-          [1 :battle/attacker_size 5000]
-          [1 :battle/attacker_4 "Glover"]
-          [1 :battle/defender_king "Joffrey/Tommen Baratheon"]
-          [1 :battle/attacker_2 "Karstark"]
-          [1 :battle/year 300]
-          [1 :battle/name "Siege of Winterfell"]
-          [1 :battle/attacker_3 "Mormont"]
-          [1 :battle/summer false]])),
-      :sym-table
-      {:a first,
-       db0
-       [[1 :battle/attacker_commander "Stannis Baratheon"]
-        [1 :battle/defender_1 "Bolton"]
-        [1 :battle/attacker_size 5000]
-        [1 :battle/attacker_4 "Glover"]
-        [1 :battle/defender_king "Joffrey/Tommen Baratheon"]
-        [1 :battle/attacker_2 "Karstark"]
-        [1 :battle/year 300]
-        [1 :battle/name "Siege of Winterfell"]
-        [1 :battle/attacker_3 "Mormont"]
-        [1 :battle/summer false]]},
-      :tx-data
-      [[db0
+  (testing "test enter interceptor chain"
+   (is
+    (=
+     (-> {:body-params
+          '(do
+             (load-db db0 "resources/test-db.edn")
+             (:a db0))}
+         ((:enter (t/sym-table-interceptor (atom {:a 'first}))))
+         ((:enter t/load-db-instructions))
+         ((:enter t/replace-symbols)))
+     '{:body-params
+       (do
+         (first
+          [[1 :battle/attacker_commander "Stannis Baratheon"]
+           [1 :battle/defender_1 "Bolton"]
+           [1 :battle/attacker_size 5000]
+           [1 :battle/attacker_4 "Glover"]
+           [1 :battle/defender_king "Joffrey/Tommen Baratheon"]
+           [1 :battle/attacker_2 "Karstark"]
+           [1 :battle/year 300]
+           [1 :battle/name "Siege of Winterfell"]
+           [1 :battle/attacker_3 "Mormont"]
+           [1 :battle/summer false]])),
+       :sym-table
+       {:a first,
+        db0
         [[1 :battle/attacker_commander "Stannis Baratheon"]
          [1 :battle/defender_1 "Bolton"]
          [1 :battle/attacker_size 5000]
@@ -163,4 +154,28 @@
          [1 :battle/year 300]
          [1 :battle/name "Siege of Winterfell"]
          [1 :battle/attacker_3 "Mormont"]
-         [1 :battle/summer false]]]]})))
+         [1 :battle/summer false]]},
+       :tx-data
+       [[db0
+         [[1 :battle/attacker_commander "Stannis Baratheon"]
+          [1 :battle/defender_1 "Bolton"]
+          [1 :battle/attacker_size 5000]
+          [1 :battle/attacker_4 "Glover"]
+          [1 :battle/defender_king "Joffrey/Tommen Baratheon"]
+          [1 :battle/attacker_2 "Karstark"]
+          [1 :battle/year 300]
+          [1 :battle/name "Siege of Winterfell"]
+          [1 :battle/attacker_3 "Mormont"]
+          [1 :battle/summer false]]]]})))
+
+  (testing "test leave interceptor chain"
+   (is 
+    (=
+     (-> {:response {:body {:result 5}}
+          :tx-data [[:b 2] [:c 3]]}
+         ((:leave (t/sym-table-interceptor (atom {:a 1}))))
+         ((:leave t/resp->transit)))
+
+     {:response {:body "[\"^ \",\"~:result\",5]"},
+      :tx-data [[:b 2] [:c 3]],
+      :sym-table {:a 1, :b 2, :c 3}}))))
