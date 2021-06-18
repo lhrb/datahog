@@ -1,12 +1,12 @@
 (ns lhrb.replservice-test
-  (:require  [clojure.test :refer :all]
-             [lhrb.replservice :refer :all]))
+  (:require  [clojure.test :refer [deftest is]]
+             [lhrb.replservice :as t]))
 
 (deftest test-sym-table-interceptor
   (is
    (=
     ((:enter
-      (sym-table-interceptor (atom {:a 1})))
+      (t/sym-table-interceptor (atom {:a 1})))
      {})
 
     {:sym-table {:a 1}}))
@@ -14,7 +14,7 @@
   (is
    (=
     ((:leave
-      (sym-table-interceptor (atom {:a 1})))
+      (t/sym-table-interceptor (atom {:a 1})))
      {:tx-data [:b 2]})
 
     {:tx-data [:b 2], :sym-table {:a 1, :b 2}})))
@@ -22,7 +22,7 @@
 (deftest test-replace-symbols
   (is
    (=
-    ((:enter replace-symbols)
+    ((:enter t/replace-symbols)
      {:sym-table {:a "a" :b "b"}
       :body-params '(:a {:b [:a]})})
 
@@ -32,7 +32,7 @@
 (deftest test-eval-body
   (is
    (=
-    (eval-body {:body-params '(+ 1 2)})
+    (t/eval-body {:body-params '(+ 1 2)})
 
     {:status 200
      :headers {"Content-Type" "application/transit+json"}
@@ -41,22 +41,29 @@
 (deftest test-resp->transit
   (is
    (=
-    ((:leave resp->transit)
+    ((:leave t/resp->transit)
      {:response {:body '(1 2 3)}})
 
     {:response {:body "[\"~#list\",[1,2,3]]"}}))
 
+  (is "can we handle nil?"
+   (=
+    ((:leave t/resp->transit)
+     {:response {:body nil}})
+
+    {:response {:body "[\"~#'\",null]"}}))
+
   (is
    (=
-    ((:leave resp->transit)
-     {:response {:body {:result #'resp->transit}}})
+    ((:leave t/resp->transit)
+     {:response {:body {:result #'t/resp->transit}}})
 
     {:response {:body "[\"^ \",\"~:result\",\"~$resp->transit\"]"}})))
 
 (deftest test-load-db-instructions
   (is
    (=
-    ((:enter load-db-instructions)
+    ((:enter t/load-db-instructions)
      {:body-params
             '(do
                (load-db db0 "resources/test-db.edn")
@@ -116,9 +123,9 @@
     (-> {:body-params '(do
                          (load-db db0 "resources/test-db.edn")
                          (:a db0))}
-        ((:enter (sym-table-interceptor (atom {:a 'first}))))
-        ((:enter load-db-instructions))
-        ((:enter replace-symbols)))
+        ((:enter (t/sym-table-interceptor (atom {:a 'first}))))
+        ((:enter t/load-db-instructions))
+        ((:enter t/replace-symbols)))
     '{:body-params
       (do
         (first
