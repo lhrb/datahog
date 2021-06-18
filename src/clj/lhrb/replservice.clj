@@ -24,9 +24,10 @@
                        (m/encode "application/transit+json")
                        (slurp)))))})
 
-(defn sym-table-interceptor [sym-table]
+(defn sym-table-interceptor
   "enter: add the sym-table to the request
    leave:  updates sym-table if transaction data is available"
+  [sym-table]
   {:name :sym-table-interceptor
    :enter (fn [ctx]
             (assoc ctx :sym-table @sym-table))
@@ -61,7 +62,10 @@
    (list? form)
    (= 'load-db (first form))))
 
-(defn rmv-from-ast [pred ast]
+(defn rmv-from-ast
+  "removes nodes matching the given predicate from a
+  lisp abstract syntax tree"
+  [pred ast]
     (w/prewalk
      (fn [node]
        (if (list? node)
