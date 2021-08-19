@@ -3,6 +3,14 @@
   (:require [clojure.string :as str]
             [clojure.core.match :refer [match]]))
 
+(defn lvar?
+  "wrapper around symbol?
+  introduces to decouple logic vars from concrete implementation.
+  Currently they are still just clj symbols"
+  [x]
+  (symbol? x))
+
+
 (defn walk
   "walks the environment as long as it finds a new
   association value"
@@ -26,10 +34,10 @@
         y (walk env y)]
     (cond
       (nil? env)          nil
-      (and (symbol? x)
-           (symbol? y))   (assoc env x y)
-      (symbol? x)         (assoc env x y)
-      (symbol? y)         (assoc env y x)
+      (and (lvar? x)
+           (lvar? y))   (assoc env x y)
+      (lvar? x)         (assoc env x y)
+      (lvar? y)         (assoc env y x)
       :else               (when (= x y) env))))
 
 (comment
@@ -133,7 +141,7 @@
   ,)
 
 (defn grounded? [x]
-  (not (symbol? x)))
+  (not (lvar? x)))
 
 (defn q-db [db e a v]
   (fn [envs]
@@ -335,7 +343,7 @@
        (filter
         (fn [s]
           (and
-           (symbol? s)
+           (lvar? s)
            (str/starts-with? (str s) "?"))))
        (distinct)))
 
