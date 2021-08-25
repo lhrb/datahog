@@ -1,109 +1,8 @@
 (ns lhrb.engine
   (:refer-clojure :exclude [==])
   (:require [clojure.string :as str]
-            [clojure.core.match :refer [match]]))
-
-(defn lvar?
-  "wrapper around symbol?
-  introduces to decouple logic vars from concrete implementation.
-  Currently they are still just clj symbols"
-  [x]
-  (symbol? x))
-
-
-(defn walk
-  "walks the environment as long as it finds a new
-  association value"
-  [env val]
-  (if-let [val' (get env val)]
-    (recur env val')
-    val))
-
-(comment
-  (walk {:a 1} :a)
-  (walk {:a :b :b 2} :a)
-  ;(walk {:a :b :b :a} :a)
-  (walk {} :a)
-  ,)
-
-(defn unify
-  "returns nil if unification is not possible,
-   else extends the given env with zero or more associations"
-  [env x y]
-  (let [x (walk env x)
-        y (walk env y)]
-    (cond
-      (nil? env)          nil
-      (and (lvar? x)
-           (lvar? y))   (assoc env x y)
-      (lvar? x)         (assoc env x y)
-      (lvar? y)         (assoc env y x)
-      :else               (when (= x y) env))))
-
-(comment
-  (unify {} 1 2)
-  (unify {} 1 1)
-  (unify {'b 1} 'a 'b)
-  (unify {} 'a 'b)
-  (unify {'a 'b 'b 1} 'b 'a)
-  (unify {'a 'c 'b 'd} 'a 'b)
-  ,)
-
-(defn ==
-  "returns a function that takes a stream of environments,
-  tries to unify the given x and y in each of them and returns
-  all non-nil environments"
-  [x y]
-  (fn [envs]
-    (->> envs
-         (map (fn [env] (unify env x y)))
-         (remove nil?))))
-
-(comment
-  ((== 1 1) '({} {}))
-  ((== 1 2) '({}))
-  ((== 'a 1) '({}))
-  ,)
-
-(def conj*
-  "composes functions that take a stream of enviroments"
-  comp)
-
-(comment
- (->> '({c 1} {b 1})
-      ((conj*
-        (== 'a 1)
-        (== 'b 2))))
-
- (->> '({})
-      ((conj*
-        (== 'a 1)
-        (== 'a 2))))
- ,)
-
-
-(defn disj*
-  "returns a function that takes a stream of enviroments,
-  applies each given clause to the stream and concats the results"
-  [& clauses]
-  (fn [envs]
-    (->> clauses
-         (mapcat (fn [expr] (expr envs))))))
-
-(comment
-  (->> '({c 1} {b 1})
-       ((disj*
-         (== 'a 1)
-         (== 'b 2)
-         (== 'd 2))))
-
-  (->> '({})
-       ((conj*
-         (disj*
-          (conj* (== 'x "split") (== 'y "pea"))
-          (conj* (== 'x "red") (== 'y "bean")))
-         (== ('x 'y "soup") 'r))))
-  ,)
+            [clojure.core.match :refer [match]]
+            [lhrb.ukanren :refer [lvar? walk unify == conj* disj*]]))
 
 (defn create-index
   "creates an index from eav data
@@ -181,6 +80,18 @@
        ((conj*
          (q-db db 'a :likes "Pizza")
          (q-db db 'a :age 40))))
+
+  (def dbt
+    [[0 :name "Peter"]
+     [0 :ancestor "Hans"]
+     [1 :name "Hans"]
+     [1 :ancestor "Ruben"]
+     [2 :name "Ruben"]])
+
+  (defn ancestor? [db ?from]
+    (disj*
+     (q-db db 'e :ancestor ?from)
+     ))
 
 
   (require '[lhrb.readcsv :refer [create-got-db]])
@@ -272,7 +183,7 @@
             (apply juxt (map extract ['a 'b])))))
 
     (run
-      (reify-var 'names 'house)
+      ;(reify-var 'names 'house)
       (q-db db 'battle :battle/battle_type "ambush")
       (q-db db 'battle :battle/attacker_commander 'names)
       (q-db db 'person :char/Name 'names)
@@ -441,6 +352,21 @@
   (q {:find [?e]
       :where [[?e :char/Name (or (if true "Randa" nil) "Drogo")]]}
      db)
+
+
+  ;; try recursive rule
+  (def db
+    [[0 :name "North America"]
+     [1 :name "United State"]
+     [1 :within 0]
+     [2 :name "Idaho"]
+     [2 :within 1]])
+
+  (defn within-recursive [db ?location ?name]
+    (conj*
+     (q-db db )))
+
+
   ,)
 
 #_(eval (clojure.edn/read-string "(q {:find [?e]
