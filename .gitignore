@@ -13,3 +13,6 @@
 /.lsp
 /.shadow-cljs
 /resources/public/js
+.idea/
+.clj-kondo/
+datahog.iml
