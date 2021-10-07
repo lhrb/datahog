@@ -29,7 +29,9 @@
   [c]
   (if (cons? c)
     (cons (car c) (consl (cdr c)))
-    (list c)))
+    (if (nil? c)
+      '()
+      (list c))))
 
 ;; NOTE nil symbolize the end of the stream
 
@@ -185,18 +187,18 @@
     (recur (stream))
     stream))
 
-(defn take-all
+(defn take-all'
   "realizes the stream"
   [stream]
   (let [stream (pull stream)]
     (if (nil? stream)
       nil
       (if-let [head (car stream)]
-        (cons' head (take-all (cdr stream)))
+        (cons' head (take-all' (cdr stream)))
         ;; remove nil TODO verify correctness
-        (take-all (cdr stream))))))
+        (take-all' (cdr stream))))))
 
-(defn take-n
+(defn take-n'
   [n stream]
   (if (= n 0)
     nil
@@ -204,9 +206,17 @@
       (if (nil? stream)
         nil
         (if-let [head (car stream)]
-          (cons' head (take-n (- n 1) (cdr stream)))
+          (cons' head (take-n' (- n 1) (cdr stream)))
           ;; remove nil TODO verify correctness
-          (take-n (- n 1) (cdr stream)))))))
+          (take-n' (- n 1) (cdr stream)))))))
+
+(defn take-all
+  [stream]
+  (consl (take-all' stream)))
+
+(defn take-n
+  [n stream]
+  (consl (take-n' n stream)))
 
 (comment
   ;; test infinity
