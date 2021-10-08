@@ -2,7 +2,9 @@
   (:refer-clojure :exclude [==]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; implementation of cons cells
+;; Implementation of cons cells.
+;; I tried to use clj lazy sequences but I figured that the implenentation
+;; with cons cells is 'easier' and more concice.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defprotocol cons-cell
@@ -33,7 +35,8 @@
       '()
       (list c))))
 
-;; NOTE nil symbolize the end of the stream
+;; NOTE nil symbolize the end of the stream. The representation
+;; yielded by lcons and $ is expected by mplus and bind.
 
 (defn lcons
   "creates cons-cells from clj list"
@@ -51,21 +54,15 @@
   (.write w (str (consl c))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; We define a lazy stream with a monadic structure.
-;; The reason to not use clojures lazy sequences is control over the search
-;; strategy. The mplus operation will merge streams and interleave them that
-;; is to give them "equal" computation time or in other words giving control
-;; about the search strategy. The main reason for this: we can yield an answer
-;; even when one of the streams is infinite.
+;; The microKanren language uses a monadic structure to process the streams.
+;; mplus also contains a scheduling mechanism
 ;;
 ;; Monad
 ;; a monad implements the operations 'unit' and 'bind' (flatMap)
 ;; unit: is the 'type-constructor' a -> m a
 ;; bind: m a -> (a -> m b) -> m b
-;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; this is the 'type-constructor'
 (defn unit [env] (cons' env nil))
 
 (defn mplus
@@ -85,18 +82,13 @@
     (fn? stream) (fn [] (bind (stream) goal))
     :else (mplus (goal (car stream)) (bind (cdr stream) goal))))
 
-;; (bind (cons' {'a 1} (cons' {'a 2} nil)) (== 'b 2))
+;; (bind (cons' {'a 1} (cons' {'a 2} nil)) (== 'b
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; we use clojure symbols as logic variables (lvar)
-;; if this works out we should be able to skip the reify step.
-;; if not we should be able to simply swap the underling implementation :)
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; NOTE we currently just use clojure symbols as logic variables (lvar)
 
 (defn lvar?
-  "wrapper around symbol?
-  introduces to decouple logic vars from concrete implementation.
-  Currently lvars are just clj symbols"
+  "wrapper around symbol? introduces to make a switch away from clojure symbols
+  easier"
   [x]
   (symbol? x))
 
@@ -211,10 +203,13 @@
           (take-n' (- n 1) (cdr stream)))))))
 
 (defn take-all
+  "realizes the stream and returns a clj-list"
   [stream]
   (consl (take-all' stream)))
 
 (defn take-n
+  "realizes the first n elements of the stream and returns
+  a clj-list"
   [n stream]
   (consl (take-n' n stream)))
 
@@ -227,33 +222,3 @@
 
   (take-n 15 ((fives 'x) {}))
  ,)
-
-
-
-(comment
-  ;; this is my old implementation using clj lazy sequences.
-  ;; I had to abandon these, because they don't implement any kind
-  ;; of scheduling.
-  ;;
-  (defn ==
-    "returns a function that takes a stream of environments,
-  tries to unify the given x and y in each of them and returns
-  all non-nil environments"
-    [x y]
-    (fn [envs]
-      (->> envs
-           (map (fn [env] (unify env x y)))
-           (remove nil?))))
-
-  (def conj*
-    "composes functions that take a stream of enviroments"
-    comp)
-
-  (defn disj*
-    "returns a function that takes a stream of enviroments,
-  applies each given clause to the stream and concats the results"
-    [& clauses]
-    (fn [envs]
-      (->> clauses
-           (mapcat (fn [expr] (expr envs))))))
-  ,)
