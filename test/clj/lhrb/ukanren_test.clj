@@ -1,7 +1,7 @@
 (ns lhrb.ukanren-test
   (:require [lhrb.ukanren :as sut :refer :all]
             [clojure.test :as t]
-            [lhrb.util.test :refer [is=]]))
+            [lhrb.test :refer [is=]]))
 
 (t/deftest test-mplus
   ;; side note: we use keywords here instead of symbols

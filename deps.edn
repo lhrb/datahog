@@ -1,4 +1,4 @@
-{:paths ["src/clj" "resources"]
+{:paths ["src/clj" "resources" "test/clj"]
  :deps {org.clojure/clojure {:mvn/version "1.10.2"}
         cheshire/cheshire {:mvn/version "5.10.0"}
         org.clojure/data.csv {:mvn/version "1.0.0"}
@@ -12,7 +12,8 @@
         org.slf4j/slf4j-simple       {:mvn/version "1.7.28"}
         ;; probably not all deps are needed here
         metosin/reitit {:mvn/version "0.5.13"}
-        metosin/reitit-pedestal {:mvn/version "0.5.13"}}
+        metosin/reitit-pedestal {:mvn/version "0.5.13"}
+        criterium/criterium {:mvn/version "0.4.6"}}
  :aliases
  {:run-m {:main-opts ["-m" "lhrb.datahog"]}
   :run-x {:ns-default lhrb.datahog
