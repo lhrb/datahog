@@ -55,7 +55,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The microKanren language uses a monadic structure to process the streams.
-;; mplus also contains a scheduling mechanism
+;; mplus contains the scheduling mechanism
 ;;
 ;; Monad
 ;; a monad implements the operations 'unit' and 'bind' (flatMap)
