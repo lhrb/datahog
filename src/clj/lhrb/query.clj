@@ -116,9 +116,44 @@
        (mapv (fn [env]
                (mapv (fn [var] (walk env var)) vars)))))
 
-(defmacro q [{:keys [find where]} db]
+(defmacro q
+  "query the database"
+  [{:keys [find where]} db]
   (let [;; test if vars in find clause are also in where clause
         lvars (find-lvars find where)
         where-compiled (compile-where-clauses where db)]
-    `(let [~@(interleave lvars (map (fn [sym] `(gensym ~(name sym))) lvars))]
+    `(fresh ~lvars
        (reify-v ~find (run ~@where-compiled)))))
+
+#_(defmacro rule
+  "defines a reusable part of a query"
+  [rule-name args body]
+  )
+
+(comment
+  (macroexpand-1 '(rule rule-name [parameter1 parameter2]
+                        [[?e :name "Peter"]
+                         [?e :likes "Pizza"]]))
+
+  (def db
+    [[0 :name "Helge"]
+     [1 :name "Jutta"]
+     [1 :ancestor 0]
+     [2 :name "Adelheit"]
+     [2 :ancestor 1]
+     [3 :name "Manfred"]
+     [3 :ancestor 2]
+     [4 :ancestor 3]
+     [5 :ancestor 4]
+     [5 :ancestor 3]])
+
+  (defn ancestor? [?x ?y]
+    (disj+
+     (query-goal db ?x :ancestor ?y)
+     (conj+
+      (fresh [?z]
+       (query-goal db ?x :ancestor ?z)
+       (ancestor? ?z ?y)))))
+
+  (take-n 6 ((ancestor? 5 '?e) {}))
+  ,)
