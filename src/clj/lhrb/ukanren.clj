@@ -144,6 +144,10 @@
   (fn [env]
     (bind (g1 env) g2)))
 
+(defmacro fresh [vars & body]
+  `(let [~@(interleave vars (map (fn [sym] `(gensym ~(name sym))) vars))]
+     ~@body))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; user level functionality
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
