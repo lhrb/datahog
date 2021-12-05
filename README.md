@@ -3,8 +3,8 @@
 This is a learning project.
 
 ## microKanren
-`lhrb.ukanren` contains an implementations of the microKanren language as described in this
-paper [paper]("http://webyrd.net/scheme-2013/papers/HemannMuKanren2013.pdf"). 
+`lhrb.ukanren` contains an implementations of the microKanren language as described in this 
+[paper]("http://webyrd.net/scheme-2013/papers/HemannMuKanren2013.pdf"). 
 
 To create an (hopefully) easy to understand Clojure implementation I used `cons` cells instead
 of the Clojure sequence abstraction. This yielded an implementation much closer to the original
