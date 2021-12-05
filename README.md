@@ -18,7 +18,7 @@ Clojure implementations  and  I'm a bit proud that my implementation joins the c
 `lhrb.query` contains
 
 *  a basic e-a-v-triplet store implementation.
-*  a datomic inspired query language which uses the `ukanren` implementation as back-end.
+*  a datomic inspired query language which uses the `ukanren` implementation as back-end. (Planned to )
 
 ``` clojure
 ;; basic example
@@ -47,10 +47,10 @@ Clojure implementations  and  I'm a bit proud that my implementation joins the c
  
  ;; names and nobility of the defending commanders in the battle at Storm's End 
   (q {:find [?name ?noble]
-        :where [[?b :battle/location "Storm's End"]
-                [?b :battle/defender_commander ?name]
-                [?p :char/Name ?name]
-                [?p :char/Nobility ?noble]]}
+      :where [[?b :battle/location "Storm's End"]
+              [?b :battle/defender_commander ?name]
+              [?p :char/Name ?name]
+              [?p :char/Nobility ?noble]]}
    db)
 => [["Renly Baratheon" "nobel"]
     ["Randyll Tarly" "nobel"]
@@ -60,9 +60,10 @@ Clojure implementations  and  I'm a bit proud that my implementation joins the c
 
  ;; battle names where the attacking army size is bigger than 10000  
  (q {:find [?name ?num]
-      :where [[?b :battle/name ?name]
-              [?b :battle/attacker_size (> ?num 10000)]]}
+     :where [[?b :battle/name ?name]
+             [?b :battle/attacker_size (> ?num 10000)]]}
      db)
+     
 => [["Battle of Riverrun" 15000]
     ["Battle of Castle Black" 100000]
     ["Battle of the Golden Tooth" 15000]
