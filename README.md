@@ -63,7 +63,12 @@ Clojure implementations  and  I'm a bit proud that my implementation joins the c
       :where [[?b :battle/name ?name]
               [?b :battle/attacker_size (> ?num 10000)]]}
      db)
- 
+=> [["Battle of Riverrun" 15000]
+    ["Battle of Castle Black" 100000]
+    ["Battle of the Golden Tooth" 15000]
+    ["Battle of the Green Fork" 18000]
+    ["Battle of the Blackwater" 21000]
+    ["Battle of the Fords" 20000]] 
 ```
 
 Rules are currently only supported by using ukanren syntax. Compilation for rules will be supported as soon as I figured out how to schedule the evaluation of recursive rules (currently paths get repeated).
